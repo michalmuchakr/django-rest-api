@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  postgres_db:
+    image: postgres:14.5-alpine
+    volumes:
+      - ./data/db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    environment:
+      - POSTGRES_NAME=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST_SERVICE=postgres_db
+      - POSTGRES_PORT=5432
+      - DJANGO_SUPERUSER_PASSWORD=adminUserPass
+      - SECRET_KEY=django-insecure-mrjtk+x9v(22m_@38fg8kz7@$mi$!=u#+2mzzhat9g$_*5saz_
+    command: >
+      sh -c "python manage.py migrate &&
+            #  python manage.py createsuperuser \
+            #   --username adminUser \
+            #   --email adminUser@admin.com \
+            #   --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres_db:
+        condition: service_healthy
